@@ -37,3 +37,5 @@ flutter:
       web:
         pluginClass: IrisMethodChannelWeb
         fileName: iris_method_channel_web.dart
+      ohos:
+        pluginClass: IrisMethodChannelPlugin
