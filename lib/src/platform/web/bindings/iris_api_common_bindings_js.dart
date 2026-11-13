@@ -34,8 +34,12 @@ extension type EventParam._(JSObject _) implements JSObject {
 }
 
 Uint8List _jsObjectToUint8List(JSObject o) {
-  if (o.isA<JSUint8Array>()) return (o as JSUint8Array).toDart;
-  if (o.isA<JSArrayBuffer>()) return (o as JSArrayBuffer).toDart.asUint8List();
+  if (o.isA<JSUint8Array>()) {
+    return (o as JSUint8Array).toDart;
+  }
+  if (o.isA<JSArrayBuffer>()) {
+    return (o as JSArrayBuffer).toDart.asUint8List();
+  }
   return Uint8List(0);
 }
 
@@ -79,14 +83,20 @@ external IrisApiEngine createIrisApiEngine();
 @JS('IrisCore.disposeIrisApiEngine')
 external int disposeIrisApiEngine(IrisApiEngine engine_ptr);
 
-// NOTE: The JS side actually returns a `Promise` here, so the return type is
-// declared as `JSAny` and converted with `dartify()` by the caller.
+// NOTE: The JS side returns a `Promise` of a `CallIrisApiResult`. The return
+// type stays `JSAny` so existing callers keep their own conversion, e.g.
+// `(callIrisApi(...) as JSPromise<CallIrisApiResult>).toDart`.
 @JS('IrisCore.callIrisApi')
 external JSAny callIrisApi(IrisApiEngine engine_ptr, ApiParam apiParam);
 
 typedef IrisEventHandlerFuncJS = void Function(EventParam param);
 typedef IrisCEventHandler = IrisEventHandlerFuncJS;
 
+// A plain Dart function type is not allowed in an `external` interop
+// signature, so the JS declaration takes a `JSObject` and the exported
+// wrapper converts the callback with `Function.toJS` (dart2js + dart2wasm).
 @JS('IrisCore.createIrisEventHandler')
-external IrisEventHandler createIrisEventHandler(
-    IrisCEventHandler event_handler);
+external IrisEventHandler _createIrisEventHandler(JSObject event_handler);
+
+IrisEventHandler createIrisEventHandler(IrisCEventHandler event_handler) =>
+    _createIrisEventHandler(event_handler.toJS);

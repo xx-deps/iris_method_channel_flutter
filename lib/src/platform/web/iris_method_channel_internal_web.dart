@@ -20,6 +20,9 @@ class IrisMethodChannelInternalWeb implements IrisMethodChannelInternal {
 
   IrisEventMessageListener? _irisEventMessageListener;
 
+  // Keep the Dart callback alive for the lifetime of the channel. The binding
+  // layer converts it to a JS function with `Function.toJS` when the event
+  // handler is registered.
   js_binding.IrisCEventHandler? _irisEventHandlerFuncJS;
 
   IrisEventHandlerHandle? _irisEventHandlerHandle;
@@ -107,8 +110,8 @@ class IrisMethodChannelInternalWeb implements IrisMethodChannelInternal {
         _platformBindingsDelegate!.createApiEngine(args);
     _irisApiEngine = createApiEngineResult.apiEnginePtr;
 
-    // `dart:js_interop` converts the Dart function to a JS function
-    // automatically on both dart2js and dart2wasm.
+    // `dart:js_interop` does not convert Dart callbacks automatically; the
+    // binding layer creates the JS function with `Function.toJS`.
     _irisEventHandlerFuncJS = _onEventFromJS;
     _irisEventHandlerHandle = _platformBindingsDelegate!.createIrisEventHandler(
         IrisCEventHandlerHandle(_irisEventHandlerFuncJS!));
