@@ -8,6 +8,11 @@ analyzer:
     # Ignore generated files
     - "**/*.g.dart"
     - lib/src/bindings/*.dart
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
 
 linter:
   rules:

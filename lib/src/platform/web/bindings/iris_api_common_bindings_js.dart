@@ -1,30 +1,26 @@
-@JS()
-library iris_web;
-
 import 'dart:convert';
+import 'dart:js_interop';
 import 'dart:typed_data';
 
 import 'package:iris_method_channel/src/platform/iris_event_interface.dart';
 import 'package:iris_method_channel/src/platform/iris_method_channel_interface.dart';
-import 'package:js/js.dart';
 
 // ignore_for_file: public_member_api_docs, non_constant_identifier_names
 
 // NOTE:
-// For compatibility to dart sdk >= 2.12, we only use the feature that are
-// supported in `js: 0.6.3` at this time
+// This file is compiled to both dart2js and dart2wasm, so it only uses the
+// `dart:js_interop` APIs, which are supported on both compilers.
 
 @JS('IrisCore.EventParam')
 @anonymous
-class EventParam {
-  // Must have an unnamed factory constructor with named arguments.
+extension type EventParam._(JSObject _) implements JSObject {
   external factory EventParam({
     String event,
     String data,
     int data_size,
     String result,
-    List<Object> buffer,
-    List<int> length,
+    JSArray<JSObject>? buffer,
+    JSArray<JSNumber>? length,
     int buffer_count,
   });
 
@@ -32,21 +28,27 @@ class EventParam {
   external String get data;
   external int get data_size;
   external String get result;
-  external List<Object> get buffer;
-  external List<int> get length;
+  external JSArray<JSObject> get buffer;
+  external JSArray<JSNumber> get length;
   external int get buffer_count;
 }
 
+Uint8List _jsObjectToUint8List(JSObject o) {
+  if (o.isA<JSUint8Array>()) return (o as JSUint8Array).toDart;
+  if (o.isA<JSArrayBuffer>()) return (o as JSArrayBuffer).toDart.asUint8List();
+  return Uint8List(0);
+}
+
 IrisEventMessage toIrisEventMessage(EventParam param) {
-  return IrisEventMessage(
-      param.event, param.data, List<Uint8List>.from(param.buffer));
+  return IrisEventMessage(param.event, param.data,
+      param.buffer.toDart.map(_jsObjectToUint8List).toList());
 }
 
 typedef ApiParam = EventParam;
 
 @JS('IrisCore.CallIrisApiResult')
 @anonymous
-class CallIrisApiResult {
+extension type CallIrisApiResult._(JSObject _) implements JSObject {
   external factory CallIrisApiResult({
     int code,
     String data,
@@ -65,11 +67,11 @@ extension CallIrisApiResultExt on CallIrisApiResult {
 
 @JS('IrisCore.IrisEventHandler')
 @anonymous
-class IrisEventHandler {}
+extension type IrisEventHandler._(JSObject _) implements JSObject {}
 
 @JS('IrisCore.IrisApiEngine')
 @anonymous
-class IrisApiEngine {}
+extension type IrisApiEngine._(JSObject _) implements JSObject {}
 
 @JS('IrisCore.createIrisApiEngine')
 external IrisApiEngine createIrisApiEngine();
@@ -77,8 +79,10 @@ external IrisApiEngine createIrisApiEngine();
 @JS('IrisCore.disposeIrisApiEngine')
 external int disposeIrisApiEngine(IrisApiEngine engine_ptr);
 
+// NOTE: The JS side actually returns a `Promise` here, so the return type is
+// declared as `JSAny` and converted with `dartify()` by the caller.
 @JS('IrisCore.callIrisApi')
-external int callIrisApi(IrisApiEngine engine_ptr, ApiParam apiParam);
+external JSAny callIrisApi(IrisApiEngine engine_ptr, ApiParam apiParam);
 
 typedef IrisEventHandlerFuncJS = void Function(EventParam param);
 typedef IrisCEventHandler = IrisEventHandlerFuncJS;
